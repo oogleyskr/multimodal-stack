@@ -7,12 +7,14 @@ Accepts images via POST /describe and returns text descriptions.
 Port: 8102
 """
 
-import io
 import os
 import time
 import base64
 import logging
-import tempfile
+import traceback
+
+# Suppress noisy tokenizer warnings
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.responses import JSONResponse
@@ -42,6 +44,7 @@ async def load_model():
         MODEL_ID,
         torch_dtype=torch.float16,
         device_map="auto",
+        attn_implementation="eager",
     )
     processor = AutoProcessor.from_pretrained(MODEL_ID)
 
@@ -127,7 +130,7 @@ async def describe(
             "tokens_generated": len(generated_ids[0]),
         })
     except Exception as e:
-        logger.error(f"Vision inference failed: {e}")
+        logger.error(f"Vision inference failed: {e}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

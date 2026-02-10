@@ -62,7 +62,17 @@ start_service() {
 
     echo -n "  Starting $name on port $port... "
 
+    # Build LD_LIBRARY_PATH from the venv's nvidia packages (needed for CUDA libs).
+    # Falls back to another venv's nvidia libs if this venv doesn't have them (e.g. STT).
+    local nvidia_lib=""
+    if [[ -d "$venv/lib/python3.12/site-packages/nvidia/cublas/lib" ]]; then
+        nvidia_lib="$venv/lib/python3.12/site-packages/nvidia/cublas/lib"
+    elif [[ -d "$VENVS/tts/lib/python3.12/site-packages/nvidia/cublas/lib" ]]; then
+        nvidia_lib="$VENVS/tts/lib/python3.12/site-packages/nvidia/cublas/lib"
+    fi
+
     # Launch with nohup, redirect output to log
+    LD_LIBRARY_PATH="${nvidia_lib}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
     nohup "$venv/bin/python3.12" -m uvicorn server:app \
         --host 0.0.0.0 \
         --port "$port" \
