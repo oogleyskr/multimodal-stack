@@ -1,0 +1,21 @@
+# Virtual environments
+venvs/
+
+# Model cache
+models/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Logs
+*.log
+
+# PID files
+*.pid
+
+# OS files
+.DS_Store
+Thumbs.db
