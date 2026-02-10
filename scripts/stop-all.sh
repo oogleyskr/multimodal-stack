@@ -19,9 +19,10 @@ declare -A SERVICE_PORTS=(
     [imagegen]=8104
     [embeddings]=8105
     [docutils]=8106
+    [findata]=8107
 )
 
-ALL_SERVICES=(stt vision tts imagegen embeddings docutils)
+ALL_SERVICES=(stt vision tts imagegen embeddings docutils findata)
 
 if [[ $# -gt 0 ]]; then
     REQUESTED=("$@")

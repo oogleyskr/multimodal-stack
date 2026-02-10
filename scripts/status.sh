@@ -16,10 +16,11 @@ declare -A SERVICE_PORTS=(
     [imagegen]=8104
     [embeddings]=8105
     [docutils]=8106
+    [findata]=8107
 )
 
 # Ordered for display
-SERVICES=(stt vision tts imagegen embeddings docutils)
+SERVICES=(stt vision tts imagegen embeddings docutils findata)
 
 PID_DIR="/tmp"
 

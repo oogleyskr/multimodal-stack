@@ -24,10 +24,11 @@ declare -A SERVICE_PORTS=(
     [imagegen]=8104
     [embeddings]=8105
     [docutils]=8106
+    [findata]=8107
 )
 
 # Ordered list for startup (lighter services first to avoid GPU contention during load)
-ALL_SERVICES=(docutils embeddings stt tts imagegen vision)
+ALL_SERVICES=(findata docutils embeddings stt tts imagegen vision)
 
 # If specific services are requested, use those; otherwise start all
 if [[ $# -gt 0 ]]; then
