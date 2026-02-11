@@ -2,12 +2,15 @@
 # status.sh — Check health of all multimodal services.
 #
 # Hits /health on each port and reports status.
+# Shows which services are enabled vs disabled per services.conf.
 # Also shows GPU memory usage if nvidia-smi is available.
 #
 # Usage:
 #   bash /home/mferr/multimodal/scripts/status.sh
 
 set -euo pipefail
+
+BASE="/home/mferr/multimodal"
 
 declare -A SERVICE_PORTS=(
     [stt]=8101
@@ -20,18 +23,48 @@ declare -A SERVICE_PORTS=(
 )
 
 # Ordered for display
-SERVICES=(stt vision tts imagegen embeddings docutils findata)
+ALL_SERVICES=(stt vision tts imagegen embeddings docutils findata)
 
 PID_DIR="/tmp"
 
-echo "=== Multimodal Service Status ==="
-echo ""
-printf "%-12s %-6s %-8s %-10s %s\n" "SERVICE" "PORT" "PID" "STATUS" "DETAILS"
-printf "%-12s %-6s %-8s %-10s %s\n" "-------" "----" "---" "------" "-------"
+# Load enabled services from config
+ENABLED_SERVICES=()
+if [[ -f "$BASE/services.conf" ]]; then
+    source "$BASE/services.conf"
+fi
 
-for svc in "${SERVICES[@]}"; do
+# Helper: check if a service is in the enabled list
+is_enabled() {
+    local name="$1"
+    # If no config loaded, treat everything as enabled
+    if [[ ${#ENABLED_SERVICES[@]} -eq 0 ]]; then
+        return 0
+    fi
+    for s in "${ENABLED_SERVICES[@]}"; do
+        [[ "$s" == "$name" ]] && return 0
+    done
+    return 1
+}
+
+echo "=== Multimodal Service Status ==="
+echo "  Config: $BASE/services.conf"
+if [[ ${#ENABLED_SERVICES[@]} -gt 0 ]]; then
+    echo "  Enabled: ${ENABLED_SERVICES[*]}"
+fi
+echo ""
+printf "%-12s %-6s %-8s %-10s %-9s %s\n" "SERVICE" "PORT" "PID" "STATUS" "ENABLED" "DETAILS"
+printf "%-12s %-6s %-8s %-10s %-9s %s\n" "-------" "----" "---" "------" "-------" "-------"
+
+for svc in "${ALL_SERVICES[@]}"; do
     port="${SERVICE_PORTS[$svc]}"
     pidfile="$PID_DIR/multimodal-${svc}.pid"
+
+    # Check enabled
+    if is_enabled "$svc"; then
+        enabled="yes"
+    else
+        enabled="no"
+    fi
 
     # Check PID
     pid="-"
@@ -56,7 +89,7 @@ for svc in "${SERVICES[@]}"; do
         details="$response"
     fi
 
-    printf "%-12s %-6s %-8s %-10s %s\n" "$svc" "$port" "$pid" "$status" "$details"
+    printf "%-12s %-6s %-8s %-10s %-9s %s\n" "$svc" "$port" "$pid" "$status" "$enabled" "$details"
 done
 
 echo ""

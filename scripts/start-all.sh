@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
-# start-all.sh — Start all multimodal services on the RTX 3090.
+# start-all.sh — Start enabled multimodal services on the RTX 3090.
 #
 # Each service runs as a background uvicorn process with logs in /tmp/multimodal-*.log.
 # PID files are written to /tmp/multimodal-*.pid for clean shutdown.
 #
+# Which services start is controlled by (in priority order):
+#   1. Command-line arguments (explicit list)
+#   2. MULTIMODAL_SERVICES env var (space-separated list)
+#   3. ENABLED_SERVICES in services.conf (default: stt vision tts imagegen)
+#
 # Usage:
-#   bash /home/mferr/multimodal/scripts/start-all.sh          # Start all
-#   bash /home/mferr/multimodal/scripts/start-all.sh stt tts   # Start specific services
+#   bash start-all.sh                                    # Start enabled services
+#   bash start-all.sh stt tts                            # Start only stt and tts
+#   MULTIMODAL_SERVICES="stt vision" bash start-all.sh   # Override via env var
+#   MULTIMODAL_SERVICES="all" bash start-all.sh          # Start every known service
 
 set -euo pipefail
 
@@ -16,7 +23,7 @@ SERVICES="$BASE/services"
 LOG_DIR="/tmp"
 PID_DIR="/tmp"
 
-# Service definitions: name port
+# Service definitions: name -> port
 declare -A SERVICE_PORTS=(
     [stt]=8101
     [vision]=8102
@@ -30,9 +37,35 @@ declare -A SERVICE_PORTS=(
 # Ordered list for startup (lighter services first to avoid GPU contention during load)
 ALL_SERVICES=(findata docutils embeddings stt tts imagegen vision)
 
-# If specific services are requested, use those; otherwise start all
+# Load enabled services from config file
+ENABLED_SERVICES=()
+if [[ -f "$BASE/services.conf" ]]; then
+    source "$BASE/services.conf"
+fi
+
+# Determine which services to start:
+#   1. CLI args override everything
+#   2. MULTIMODAL_SERVICES env var overrides config file
+#   3. Fall back to ENABLED_SERVICES from services.conf
 if [[ $# -gt 0 ]]; then
     REQUESTED=("$@")
+elif [[ -n "${MULTIMODAL_SERVICES:-}" ]]; then
+    if [[ "$MULTIMODAL_SERVICES" == "all" ]]; then
+        REQUESTED=("${ALL_SERVICES[@]}")
+    else
+        read -ra REQUESTED <<< "$MULTIMODAL_SERVICES"
+    fi
+elif [[ ${#ENABLED_SERVICES[@]} -gt 0 ]]; then
+    # Reorder to match ALL_SERVICES startup order (lighter first)
+    REQUESTED=()
+    for svc in "${ALL_SERVICES[@]}"; do
+        for enabled in "${ENABLED_SERVICES[@]}"; do
+            if [[ "$svc" == "$enabled" ]]; then
+                REQUESTED+=("$svc")
+                break
+            fi
+        done
+    done
 else
     REQUESTED=("${ALL_SERVICES[@]}")
 fi
@@ -86,6 +119,7 @@ start_service() {
 }
 
 echo "=== Starting Multimodal Services ==="
+echo "  Enabled: ${REQUESTED[*]}"
 echo ""
 
 for svc in "${REQUESTED[@]}"; do

@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
-# stop-all.sh — Stop all multimodal services.
+# stop-all.sh — Stop multimodal services.
 #
 # Reads PID files from /tmp/multimodal-*.pid and sends SIGTERM.
 # Falls back to killing by port if PID file is missing.
 #
+# By default (no args), stops ALL known services regardless of enabled state.
+# This ensures clean shutdown even for services started manually.
+#
 # Usage:
-#   bash /home/mferr/multimodal/scripts/stop-all.sh          # Stop all
-#   bash /home/mferr/multimodal/scripts/stop-all.sh stt tts   # Stop specific services
+#   bash stop-all.sh                                     # Stop all known services
+#   bash stop-all.sh stt tts                             # Stop only stt and tts
+#   MULTIMODAL_SERVICES="stt vision" bash stop-all.sh    # Stop only these services
 
 set -euo pipefail
 
+BASE="/home/mferr/multimodal"
 PID_DIR="/tmp"
 
 declare -A SERVICE_PORTS=(
@@ -24,8 +29,18 @@ declare -A SERVICE_PORTS=(
 
 ALL_SERVICES=(stt vision tts imagegen embeddings docutils findata)
 
+# Determine which services to stop:
+#   1. CLI args override everything
+#   2. MULTIMODAL_SERVICES env var narrows the set
+#   3. Default: stop ALL known services (safest for shutdown)
 if [[ $# -gt 0 ]]; then
     REQUESTED=("$@")
+elif [[ -n "${MULTIMODAL_SERVICES:-}" ]]; then
+    if [[ "$MULTIMODAL_SERVICES" == "all" ]]; then
+        REQUESTED=("${ALL_SERVICES[@]}")
+    else
+        read -ra REQUESTED <<< "$MULTIMODAL_SERVICES"
+    fi
 else
     REQUESTED=("${ALL_SERVICES[@]}")
 fi
