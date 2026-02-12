@@ -5,16 +5,21 @@ Designed to work alongside BillBot (OpenClaw) via local skills.
 
 ## Services
 
-| Service | Model | VRAM | Port | Endpoint |
-|---------|-------|------|------|----------|
-| STT | faster-whisper large-v3 | ~3GB | 8101 | POST /transcribe |
-| Vision | Qwen2.5-VL-7B-Instruct-AWQ | ~5GB | 8102 | POST /describe |
-| TTS | Kokoro-82M | ~0.5GB | 8103 | POST /speak |
-| Image Gen | SDXL-Turbo | ~5GB | 8104 | POST /generate |
-| Embeddings | nomic-embed-text-v1.5 | ~0.5GB | 8105 | POST /embed |
-| Doc Utils | CPU-only (pymupdf, etc.) | 0 | 8106 | POST /parse |
+| Service | Model | VRAM | Port | Endpoint | Status |
+|---------|-------|------|------|----------|--------|
+| STT | faster-whisper large-v3 | ~3GB | 8101 | POST /transcribe | **Active** |
+| Vision | Qwen2.5-VL-7B-Instruct-AWQ | ~5GB | 8102 | POST /describe | **Active** |
+| TTS | Kokoro-82M | ~0.5GB | 8103 | POST /speak | **Active** |
+| Image Gen | SDXL-Turbo | ~5GB | 8104 | POST /generate | **Active** |
+| Embeddings | nomic-embed-text-v1.5 | ~0.5GB | 8105 | POST /embed | Disabled |
+| Doc Utils | CPU-only (pymupdf, etc.) | 0 | 8106 | POST /parse | Disabled |
+| Fin Data | CPU-only | 0 | 8107 | POST /query | Disabled |
 
-**Total: ~14GB VRAM** (leaves ~5.5GB headroom on 24GB card)
+**Active total: ~14GB VRAM** across 4 services (STT, Vision, TTS, ImageGen).
+
+> **Note:** Embeddings, DocUtils, and FinData are currently disabled to free resources
+> for the upcoming Radeon VII migration. Once the Radeon VII is installed, the multimodal
+> stack will migrate there, freeing the RTX 3090 entirely.
 
 ## Quick Start
 
